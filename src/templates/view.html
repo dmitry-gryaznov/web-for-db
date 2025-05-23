@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Просмотр таблицы {{ current_table }} | Система БД</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+        }
+
+        .main-container {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            background-color: #fff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-container {
+            max-height: 70vh;
+            overflow-y: auto;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+
+        .table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: #212529;
+            color: white;
+        }
+
+        .list-group {
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .list-group-item.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .list-group-item:hover:not(.active) {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .section-title {
+            color: var(--secondary-color);
+            font-weight: 500;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 0.5rem;
+        }
+
+        .query-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-info {
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--secondary-color);
+        }
+
+        .no-data-message i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #dee2e6;
+        }
+
+        .badge-table-count {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .action-buttons {
+            white-space: nowrap;
+        }
+
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-add-record {
+            margin-bottom: 1rem;
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--danger-color);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .sql-editor-container {
+            margin-bottom: 2rem;
+            background-color: #fff;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(0, 0, 0, 0.125);
+            overflow: hidden;
+        }
+
+        .sql-editor-header {
+            background-color: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            display: flex;
+            justify-content: between;
+            alignItems: center;
+        }
+
+        .sql-editor-header h6 {
+            margin: 0;
+            color: var(--secondary-color);
+        }
+
+        .sql-textarea {
+            border: none;
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 0.875rem;
+            background-color: #f8f9fa;
+        }
+
+        .sql-textarea:focus {
+            box-shadow: none;
+            background-color: #fff;
+        }
+
+        .sql-buttons {
+            padding: 0.75rem 1rem;
+            background-color: #f8f9fa;
+            border-top: 1px solid rgba(0, 0, 0, 0.125);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .sql-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.125);
+        }
+
+        .sql-success {
+            background-color: #d1edff;
+            color: #0c5460;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.125);
+        }
+
+        @media (max-width: 768px) {
+            .navigation-container {
+                margin-bottom: 1.5rem;
+            }
+
+            .mobile-navigation-tabs {
+                margin-bottom: 1.5rem;
+            }
+
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                margin-bottom: 0.25rem;
+            }
+
+            .sql-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast-container">
+        <div id="resultToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="toastMessage"></span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-4">
+        <h1 class="text-center mb-4">Система управления базой данных</h1>
+
+        <div class="main-container">
+            <div class="row">
+                <div class="col-lg-3 navigation-container d-none d-lg-block">
+                    <h5 class="section-title"><i class="fas fa-table"></i> Таблицы</h5>
+                    <div class="list-group mb-4">
+                        {% for table in tables %}
+                        <a href="/view?table_name={{ table }}"
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if table == current_table and not current_query %}active{% endif %}">
+                            <span><i class="fas fa-database me-2"></i>{{ table }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+
+                    <h5 class="section-title"><i class="fas fa-search"></i> Запросы</h5>
+                    <div class="list-group mb-4">
+                        <a href="/query1" class="list-group-item list-group-item-action {% if current_query == 'query1' %}active{% endif %}">
+                            <i class="fas fa-users me-2"></i>Клиенты с задолженностью
+                        </a>
+                        <a href="/query2" class="list-group-item list-group-item-action {% if current_query == 'query2' %}active{% endif %}">
+                            <i class="fas fa-list-alt me-2"></i>Перечень услуг с тарифами
+                        </a>
+                        <a href="/query3" class="list-group-item list-group-item-action {% if current_query == 'query3' %}active{% endif %}">
+                            <i class="fas fa-chart-line me-2"></i>Клиенты с превышением среднего
+                        </a>
+                        <a href="/query4" class="list-group-item list-group-item-action {% if current_query == 'query4' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>Ведомость оплаты
+                        </a>
+                        <a href="/query5" class="list-group-item list-group-item-action {% if current_query == 'query5' %}active{% endif %}">
+                            <i class="fas fa-calendar-alt me-2"></i>Задолженность по месяцам
+                        </a>
+                    </div>
+
+                    <h5 class="section-title"><i class="fas fa-code"></i> SQL Редактор</h5>
+                    <div class="list-group">
+                        <a href="/sql_editor" class="list-group-item list-group-item-action {% if current_query == 'custom_sql' %}active{% endif %}">
+                            <i class="fas fa-terminal me-2"></i>Выполнить SQL запрос
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-12 d-lg-none mobile-navigation-tabs">
+                    <ul class="nav nav-tabs nav-fill mb-3" id="navigationTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tables-tab" data-bs-toggle="tab" data-bs-target="#tables" type="button" role="tab">
+                                <i class="fas fa-table me-1"></i> Таблицы
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="queries-tab" data-bs-toggle="tab" data-bs-target="#queries" type="button" role="tab">
+                                <i class="fas fa-search me-1"></i> Запросы
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sql-tab" data-bs-toggle="tab" data-bs-target="#sql" type="button" role="tab">
+                                <i class="fas fa-code me-1"></i> SQL
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="navigationTabsContent">
+                        <div class="tab-pane fade show active" id="tables" role="tabpanel">
+                            <div class="list-group">
+                                {% for table in tables %}
+                                <a href="/view?table_name={{ table }}"
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if table == current_table and not current_query %}active{% endif %}">
+                                    <span><i class="fas fa-database me-2"></i>{{ table }}</span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="queries" role="tabpanel">
+                            <div class="list-group">
+                                <a href="/query1" class="list-group-item list-group-item-action {% if current_query == 'query1' %}active{% endif %}">
+                                    <i class="fas fa-users me-2"></i>Клиенты с задолженностью
+                                </a>
+                                <a href="/query2" class="list-group-item list-group-item-action {% if current_query == 'query2' %}active{% endif %}">
+                                    <i class="fas fa-list-alt me-2"></i>Перечень услуг с тарифами
+                                </a>
+                                <a href="/query3" class="list-group-item list-group-item-action {% if current_query == 'query3' %}active{% endif %}">
+                                    <i class="fas fa-chart-line me-2"></i>Клиенты с превышением среднего
+                                </a>
+                                <a href="/query4" class="list-group-item list-group-item-action {% if current_query == 'query4' %}active{% endif %}">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>Ведомость оплаты
+                                </a>
+                                <a href="/query5" class="list-group-item list-group-item-action {% if current_query == 'query5' %}active{% endif %}">
+                                    <i class="fas fa-calendar-alt me-2"></i>Задолженность по месяцам
+                                </a>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="sql" role="tabpanel">
+                            <div class="list-group">
+                                <a href="/sql_editor" class="list-group-item list-group-item-action {% if current_query == 'custom_sql' %}active{% endif %}">
+                                    <i class="fas fa-terminal me-2"></i>Выполнить SQL запрос
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-9">
+                    {% if current_query == 'custom_sql' %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="query-title">
+                            <i class="fas fa-terminal me-2"></i>SQL Редактор
+                        </h3>
+                    </div>
+
+                    <div class="sql-editor-container">
+                        <div class="sql-editor-header">
+                            <h6><i class="fas fa-code me-2"></i>Введите ваш SQL запрос:</h6>
+                        </div>
+                        <form method="post" action="/execute_sql" id="sqlForm">
+                            <textarea name="sql_query" class="form-control sql-textarea" placeholder="Введите ваш SQL запрос здесь...
+Например:
+SELECT * FROM клиенты LIMIT 10;
+
+SELECT к.фио, к.адрес, п.код_услуги, п.объем
+FROM клиенты к
+JOIN потребление п ON к.лицевой_счет = п.лицевой_счет
+WHERE п.период >= '2024-01-01';">{{ sql_query if sql_query else '' }}</textarea>
+                            <div class="sql-buttons">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-play me-2"></i>Выполнить запрос
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearSqlEditor()">
+                                    <i class="fas fa-times me-2"></i>Очистить
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="showSqlExamples()">
+                                    <i class="fas fa-lightbulb me-2"></i>Примеры запросов
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if sql_error %}
+                        <div class="sql-error">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Ошибка выполнения запроса:</strong><br>
+                            {{ sql_error }}
+                        </div>
+                        {% endif %}
+
+                        {% if sql_success %}
+                        <div class="sql-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            {{ sql_success }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if current_table or current_query %}
+                        {% if query_title and current_query != 'custom_sql' %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="query-title mb-3">
+                                    <i class="fas fa-search me-2"></i>{{ query_title }}
+                                </h3>
+                                {% if data %}
+                                <div class="table-info">
+                                    <span class="badge-table-count">
+                                        <i class="fas fa-list"></i> {{ data|length }} записей
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% elif current_table %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="query-title mb-3">
+                                    <i class="fas fa-table me-2"></i>{{ current_table }}
+                                </h3>
+                                {% if data %}
+                                <div class="table-info">
+                                    <span class="badge-table-count">
+                                        <i class="fas fa-list"></i> {{ data|length }} записей
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <button type="button" class="btn btn-success btn-add-record" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                                <i class="fas fa-plus-circle me-2"></i>Добавить запись
+                            </button>
+                        {% endif %}
+
+                        {% if data %}
+                            <div class="table-container">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                {% for column in columns %}
+                                                <th>{{ column }}</th>
+                                                {% endfor %}
+                                                {% if current_table and not current_query %}
+                                                <th class="text-center">Действия</th>
+                                                {% endif %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in data %}
+                                            <tr>
+                                                {% for column in columns %}
+                                                <td>{{ row[column] }}</td>
+                                                {% endfor %}
+
+                                                {% if current_table and not current_query %}
+                                                <td class="text-center action-buttons">
+                                                    <button type="button" class="btn btn-sm btn-primary edit-btn"
+                                                            data-bs-toggle="modal" data-bs-target="#editRecordModal"
+                                                            data-record="{{ row|safe_json }}">
+                                                        <i class="fas fa-edit"></i> Ред.
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-danger delete-btn"
+                                                            data-bs-toggle="modal" data-bs-target="#deleteRecordModal"
+                                                            data-record="{{ row|safe_json }}">
+                                                        <i class="fas fa-trash-alt"></i> Удал.
+                                                    </button>
+                                                </td>
+                                                {% endif %}
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% else %}
+                            {% if current_query != 'custom_sql' %}
+                            <div class="no-data-message">
+                                <i class="fas fa-database d-block"></i>
+                                <p>Нет данных для отображения</p>
+                                {% if current_table and not current_query %}
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                                    <i class="fas fa-plus-circle me-2"></i>Добавить первую запись
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        <div class="no-data-message">
+                            <i class="fas fa-arrow-left d-block"></i>
+                            <p>Выберите таблицу или запрос из списка слева</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center text-muted mt-4">
+            <p>© 2025 Система управления базой данных</p>
+        </footer>
+    </div>
+
+    <div class="modal fade" id="sqlExamplesModal" tabindex="-1" aria-labelledby="sqlExamplesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sqlExamplesModalLabel">
+                        <i class="fas fa-lightbulb me-2"></i>Примеры SQL запросов
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="accordion" id="sqlExamplesAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    Просмотр данных таблиц
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#sqlExamplesAccordion">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Просмотр всех клиентов
+SELECT * FROM клиенты;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT * FROM клиенты;')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Просмотр первых 10 записей потребления
+SELECT * FROM потребление LIMIT 10;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT * FROM потребление LIMIT 10;')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <pre class="flex-grow-1"><code>-- Просмотр клиентов с определенным адресом
+SELECT * FROM клиенты WHERE адрес LIKE '%Пушкина%';</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT * FROM клиенты WHERE адрес LIKE \'%Пушкина%\';')">Вставить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    Объединение таблиц
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#sqlExamplesAccordion">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Клиенты с их потреблением
+SELECT к.фио, к.адрес, п.код_услуги, п.объем, п.период
+FROM клиенты к
+JOIN потребление п ON к.лицевой_счет = п.лицевой_счет;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT к.фио, к.адрес, п.код_услуги, п.объем, п.период\\nFROM клиенты к\\nJOIN потребление п ON к.лицевой_счет = п.лицевой_счет;')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <pre class="flex-grow-1"><code>-- Потребление с названиями услуг
+SELECT к.фио, у.наименование, п.объем, п.период
+FROM клиенты к
+JOIN потребление п ON к.лицевой_счет = п.лицевой_счет
+JOIN услуги у ON п.код_услуги = у.код_услуги;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT к.фио, у.наименование, п.объем, п.период\\nFROM клиенты к\\nJOIN потребление п ON к.лицевой_счет = п.лицевой_счет\\nJOIN услуги у ON п.код_услуги = у.код_услуги;')">Вставить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                    Агрегатные функции
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#sqlExamplesAccordion">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Общее потребление по клиентам
+SELECT к.фио, SUM(п.объем) as общее_потребление
+FROM клиенты к
+JOIN потребление п ON к.лицевой_счет = п.лицевой_счет
+GROUP BY к.фио;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT к.фио, SUM(п.объем) as общее_потребление\\nFROM клиенты к\\nJOIN потребление п ON к.лицевой_счет = п.лицевой_счет\\nGROUP BY к.фио;')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <pre class="flex-grow-1"><code>-- Количество клиентов по услугам
+SELECT у.наименование, COUNT(DISTINCT п.лицевой_счет) as количество_клиентов
+FROM услуги у
+JOIN потребление п ON у.код_услуги = п.код_услуги
+GROUP BY у.наименование;</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('SELECT у.наименование, COUNT(DISTINCT п.лицевой_счет) as количество_клиентов\\nFROM услуги у\\nJOIN потребление п ON у.код_услуги = п.код_услуги\\nGROUP BY у.наименование;')">Вставить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                                    Модификация данных
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#sqlExamplesAccordion">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Добавление нового клиента
+INSERT INTO клиенты (лицевой_счет, фио, адрес, телефон)
+VALUES ('123456', 'Иванов И.И.', 'ул. Новая, 1', '+7-900-123-45-67');</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('INSERT INTO клиенты (лицевой_счет, фио, адрес, телефон)\\nVALUES (\'123456\', \'Иванов И.И.\', \'ул. Новая, 1\', \'+7-900-123-45-67\');')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <pre class="flex-grow-1"><code>-- Обновление адреса клиента
+UPDATE клиенты
+SET адрес = 'ул. Измененная, 10'
+WHERE лицевой_счет = '123456';</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('UPDATE клиенты \\nSET адрес = \'ул. Измененная, 10\' \\nWHERE лицевой_счет = \'123456\';')">Вставить</button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <pre class="flex-grow-1"><code>-- Удаление клиента
+DELETE FROM клиенты
+WHERE лицевой_счет = '123456';</code></pre>
+                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="insertExample('DELETE FROM клиенты \\nWHERE лицевой_счет = \'123456\';')">Вставить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addRecordModalLabel">
+                        <i class="fas fa-plus-circle me-2"></i>Добавление записи в таблицу {{ current_table }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addRecordForm" method="post" action="/add_record">
+                        <input type="hidden" name="table_name" value="{{ current_table }}">
+                        <div class="row g-3">
+                            {% for column in columns %}
+                            <div class="col-md-6">
+                                <label for="add_{{ column }}" class="form-label {% if column in required_columns %}required-field{% endif %}">{{ column }}</label>
+                                <input type="{% if column.lower().endswith('дата') or column.lower().endswith('date') or column == 'период' or column == 'действует_с' or column == 'действует_по' %}date{% elif column.lower().endswith('сумма') or column.lower().startswith('объем') or column.lower().startswith('стоимость') %}number{% else %}text{% endif %}"
+                                       class="form-control" id="add_{{ column }}" name="{{ column }}"
+                                       {% if column in required_columns %}required{% endif %}
+                                       {% if column.lower().endswith('сумма') or column.lower().startswith('объем') or column.lower().startswith('стоимость') %}step="0.01"{% endif %}>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" form="addRecordForm" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editRecordModal" tabindex="-1" aria-labelledby="editRecordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRecordModalLabel">
+                        <i class="fas fa-edit me-2"></i>Редактирование записи
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editRecordForm" method="post" action="/edit_record">
+                        <input type="hidden" name="table_name" value="{{ current_table }}">
+                        {% for column in primary_keys %}
+                        <input type="hidden" id="edit_pk_{{ column }}" name="pk_{{ column }}">
+                        {% endfor %}
+                        <div class="row g-3">
+                            {% for column in columns %}
+                            <div class="col-md-6">
+                                <label for="edit_{{ column }}" class="form-label {% if column in required_columns %}required-field{% endif %}">{{ column }}</label>
+                                <input type="{% if column.lower().endswith('дата') or column.lower().endswith('date') or column == 'период' or column == 'действует_с' or column == 'действует_по' %}date{% elif column.lower().endswith('сумма') or column.lower().startswith('объем') or column.lower().startswith('стоимость') %}number{% else %}text{% endif %}"
+                                       class="form-control" id="edit_{{ column }}" name="{{ column }}"
+                                       {% if column in primary_keys %}readonly{% endif %}
+                                       {% if column in required_columns %}required{% endif %}
+                                       {% if column.lower().endswith('сумма') or column.lower().startswith('объем') or column.lower().startswith('стоимость') %}step="0.01"{% endif %}>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" form="editRecordForm" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Сохранить изменения
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteRecordModal" tabindex="-1" aria-labelledby="deleteRecordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteRecordModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Подтверждение удаления
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите удалить эту запись? Это действие нельзя отменить.</p>
+                    <div id="deleteRecordDetails" class="alert alert-secondary mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <form id="deleteRecordForm" method="post" action="/delete_record">
+                        <input type="hidden" name="table_name" value="{{ current_table }}">
+                        {% for column in primary_keys %}
+                        <input type="hidden" id="delete_pk_{{ column }}" name="pk_{{ column }}">
+                        {% endfor %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-2"></i>Удалить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editButtons = document.querySelectorAll('.edit-btn');
+            editButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const recordData = JSON.parse(this.getAttribute('data-record'));
+
+                    {% for column in columns %}
+                    const editField{{ loop.index }} = document.getElementById('edit_{{ column }}');
+                    if (editField{{ loop.index }}) {
+                        if (editField{{ loop.index }}.type === 'date' && recordData['{{ column }}']) {
+                            const dateValue = recordData['{{ column }}'];
+                            if (typeof dateValue === 'string' && dateValue.includes('T')) {
+                                editField{{ loop.index }}.value = dateValue.split('T')[0];
+                            } else {
+                                editField{{ loop.index }}.value = dateValue;
+                            }
+                        } else {
+                            editField{{ loop.index }}.value = recordData['{{ column }}'] ?? '';
+                        }
+                    }
+                    {% endfor %}
+
+                    {% for column in primary_keys %}
+                    document.getElementById('edit_pk_{{ column }}').value = recordData['{{ column }}'] ?? '';
+                    {% endfor %}
+                });
+            });
+
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const recordData = JSON.parse(this.getAttribute('data-record'));
+
+                    {% for column in primary_keys %}
+                    document.getElementById('delete_pk_{{ column }}').value = recordData['{{ column }}'] ?? '';
+                    {% endfor %}
+
+                    let details = '';
+                    {% for column in columns %}
+                    let displayValue{{ loop.index }} = recordData['{{ column }}'] ?? '';
+                    if (displayValue{{ loop.index }} && typeof displayValue{{ loop.index }} === 'string' && displayValue{{ loop.index }}.includes('T')) {
+                        displayValue{{ loop.index }} = displayValue{{ loop.index }}.split('T')[0];
+                    }
+                    details += '<strong>{{ column }}:</strong> ' + displayValue{{ loop.index }} + '<br>';
+                    {% endfor %}
+                    document.getElementById('deleteRecordDetails').innerHTML = details;
+                });
+            });
+
+            {% if message %}
+            const toastEl = document.getElementById('resultToast');
+            const toast = new bootstrap.Toast(toastEl);
+            document.getElementById('toastMessage').textContent = "{{ message }}";
+            toastEl.classList.add('bg-{{ message_type if message_type else "success" }}');
+            toast.show();
+            {% endif %}
+        });
+
+        function clearSqlEditor() {
+            document.querySelector('.sql-textarea').value = '';
+        }
+
+        function showSqlExamples() {
+            const modal = new bootstrap.Modal(document.getElementById('sqlExamplesModal'));
+            modal.show();
+        }
+
+        function insertExample(query) {
+            document.querySelector('.sql-textarea').value = query;
+            bootstrap.Modal.getInstance(document.getElementById('sqlExamplesModal')).hide();
+        }
+    </script>
+</body>
+</html>
